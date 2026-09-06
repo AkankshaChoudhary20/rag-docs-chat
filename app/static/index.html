@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rag-docs-chat</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e6e8ec;
+    --muted: #9aa1ac;
+    --accent: #7c9eff;
+    --accent-2: #5cd6c0;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+  header h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+  header span { color: var(--muted); font-size: 0.85rem; }
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: grid;
+    gap: 1.5rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .panel h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  input[type="file"] { color: var(--text); font-size: 0.9rem; }
+  input[type="text"] {
+    flex: 1;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0d0f13;
+    color: var(--text);
+    font-size: 0.95rem;
+    min-width: 200px;
+  }
+  button {
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--accent);
+    color: #0d0f13;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary { background: transparent; color: var(--text); }
+  #docList {
+    list-style: none;
+    margin: 0.75rem 0 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  #docList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.65rem;
+    background: #0d0f13;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+  }
+  #docList .meta { color: var(--muted); }
+  #uploadStatus, #chatStatus { font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.1em; }
+  .ok { color: var(--accent-2); }
+  .err { color: var(--danger); }
+  #answer {
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    padding: 0.9rem;
+    background: #0d0f13;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 0.75rem;
+    display: none;
+  }
+  #sources { margin-top: 0.9rem; display: grid; gap: 0.6rem; }
+  .source {
+    padding: 0.7rem 0.85rem;
+    background: #0d0f13;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .source .head {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+  }
+  .source .snippet { color: var(--text); line-height: 1.4; }
+  .spinner {
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    border: 2px solid var(--muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: -0.15em;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { text-align: center; color: var(--muted); font-size: 0.75rem; padding: 1.5rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>rag-docs-chat</h1>
+    <span>upload a document, then ask questions about it</span>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1. Upload a document</h2>
+      <div class="row">
+        <input type="file" id="fileInput" accept=".txt,.md,.pdf" />
+        <button id="uploadBtn">Upload &amp; Ingest</button>
+      </div>
+      <div id="uploadStatus"></div>
+      <h2 style="margin-top: 1.25rem;">Ingested documents</h2>
+      <ul id="docList"><li class="meta">No documents yet.</li></ul>
+    </section>
+
+    <section class="panel">
+      <h2>2. Ask a question</h2>
+      <div class="row">
+        <input type="text" id="question" placeholder="e.g. What does this document say about pricing?" />
+        <button id="askBtn">Ask</button>
+      </div>
+      <div id="chatStatus"></div>
+      <div id="answer"></div>
+      <div id="sources"></div>
+    </section>
+  </main>
+
+  <footer>
+    FastAPI + pgvector + sentence-transformers (local embeddings) + Claude &middot;
+    <a href="/docs" target="_blank">API docs</a>
+  </footer>
+
+<script>
+const el = (id) => document.getElementById(id);
+
+async function refreshDocuments() {
+  const list = el('docList');
+  try {
+    const res = await fetch('/documents');
+    const docs = await res.json();
+    if (!docs.length) {
+      list.innerHTML = '<li class="meta">No documents yet.</li>';
+      return;
+    }
+    list.innerHTML = docs.map(d => `
+      <li>
+        <span>${escapeHtml(d.filename)}</span>
+        <span class="meta">${d.num_chunks} chunks &middot; ${new Date(d.uploaded_at).toLocaleString()}</span>
+      </li>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<li class="meta err">Failed to load documents: ${escapeHtml(String(e))}</li>`;
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+el('uploadBtn').addEventListener('click', async () => {
+  const input = el('fileInput');
+  const status = el('uploadStatus');
+  if (!input.files.length) {
+    status.innerHTML = '<span class="err">Choose a file first.</span>';
+    return;
+  }
+  const file = input.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+
+  el('uploadBtn').disabled = true;
+  status.innerHTML = '<span class="spinner"></span> Uploading &amp; embedding...';
+
+  try {
+    const res = await fetch('/documents', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+    status.innerHTML = `<span class="ok">Ingested "${escapeHtml(data.filename)}" into ${data.num_chunks} chunks.</span>`;
+    input.value = '';
+    refreshDocuments();
+  } catch (e) {
+    status.innerHTML = `<span class="err">Upload failed: ${escapeHtml(String(e.message || e))}</span>`;
+  } finally {
+    el('uploadBtn').disabled = false;
+  }
+});
+
+async function askQuestion() {
+  const question = el('question').value.trim();
+  const status = el('chatStatus');
+  const answerBox = el('answer');
+  const sourcesBox = el('sources');
+
+  if (!question) {
+    status.innerHTML = '<span class="err">Type a question first.</span>';
+    return;
+  }
+
+  el('askBtn').disabled = true;
+  status.innerHTML = '<span class="spinner"></span> Thinking...';
+  answerBox.style.display = 'none';
+  sourcesBox.innerHTML = '';
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+    status.innerHTML = '';
+    answerBox.style.display = 'block';
+    answerBox.textContent = data.answer;
+
+    if (data.sources && data.sources.length) {
+      sourcesBox.innerHTML = '<h2 style="margin-top:0;">Sources</h2>' + data.sources.map((s, i) => `
+        <div class="source">
+          <div class="head"><span>[${i + 1}] ${escapeHtml(s.filename)} &middot; chunk #${s.chunk_index}</span><span>similarity ${s.similarity}</span></div>
+          <div class="snippet">${escapeHtml(s.content)}</div>
+        </div>
+      `).join('');
+    } else {
+      sourcesBox.innerHTML = '<p class="meta" style="color: var(--muted);">No source chunks were retrieved.</p>';
+    }
+  } catch (e) {
+    status.innerHTML = `<span class="err">${escapeHtml(String(e.message || e))}</span>`;
+  } finally {
+    el('askBtn').disabled = false;
+  }
+}
+
+el('askBtn').addEventListener('click', askQuestion);
+el('question').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') askQuestion();
+});
+
+refreshDocuments();
+</script>
+</body>
+</html>
