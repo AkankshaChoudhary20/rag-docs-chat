@@ -32,9 +32,7 @@ def ingest_document(filename: str, content_type: str | None, data: bytes) -> dic
 
     embeddings = embed_texts(chunks)
 
-    document_id = db.insert_document(filename, content_type)
-    db.insert_chunks(document_id, chunks, embeddings)
-    db.set_document_chunk_count(document_id, len(chunks))
+    document_id = db.store_document(filename, content_type, chunks, embeddings)
 
     return {
         "id": document_id,

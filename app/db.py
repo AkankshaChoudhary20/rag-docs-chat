@@ -80,6 +80,27 @@ def insert_document(filename: str, content_type: str | None) -> int:
         return row[0]
 
 
+def store_document(filename: str, content_type: str | None, chunks: list[str],
+                   embeddings: list[list[float]]) -> int:
+    """Persist document metadata and all chunks in one transaction."""
+    if len(chunks) != len(embeddings):
+        raise ValueError("chunks and embeddings must be the same length")
+    with get_conn() as conn:
+        with conn.transaction():
+            row = conn.execute(
+                "INSERT INTO documents (filename, content_type, num_chunks) VALUES (%s, %s, %s) RETURNING id",
+                (filename, content_type, len(chunks)),
+            ).fetchone()
+            document_id = row[0]
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "INSERT INTO chunks (document_id, chunk_index, content, embedding) VALUES (%s, %s, %s, %s)",
+                    [(document_id, index, chunk, embedding)
+                     for index, (chunk, embedding) in enumerate(zip(chunks, embeddings))],
+                )
+        return document_id
+
+
 def set_document_chunk_count(document_id: int, num_chunks: int) -> None:
     with get_conn() as conn:
         conn.execute(
