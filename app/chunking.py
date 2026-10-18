@@ -21,16 +21,17 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
         A list of non-empty, whitespace-normalized chunks. Returns an empty
         list if `text` is empty/whitespace-only.
     """
+    if type(chunk_size) is not int or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
+    if type(overlap) is not int or overlap < 0:
+        raise ValueError("overlap must be a non-negative integer")
+
     # Normalize whitespace so page breaks / repeated newlines from PDF
     # extraction don't blow up chunk boundaries.
     normalized = " ".join(text.split())
     if not normalized:
         return []
 
-    if chunk_size <= 0:
-        raise ValueError("chunk_size must be positive")
-    if overlap < 0:
-        raise ValueError("overlap must be non-negative")
     if overlap >= chunk_size:
         # Guard against a degenerate config that would never advance.
         overlap = chunk_size // 4
