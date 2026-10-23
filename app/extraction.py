@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import io
 
-from pypdf import PdfReader
-
 SUPPORTED_CONTENT_TYPES = {
     "text/plain",
     "application/pdf",
@@ -24,10 +22,18 @@ def extract_text(filename: str, content_type: str | None, data: bytes) -> str:
     """
     lower_name = (filename or "").lower()
 
-    if lower_name.endswith(".pdf") or content_type == "application/pdf":
+    if lower_name.endswith(".pdf"):
         return _extract_pdf_text(data)
 
-    if lower_name.endswith((".txt", ".md")) or (content_type or "").startswith("text/"):
+    if lower_name.endswith((".txt", ".md")):
+        return _decode_text(data)
+
+    # Known extensions take precedence over stale or incorrect MIME headers.
+    # Consult the header only when the filename does not identify the format.
+    if content_type == "application/pdf":
+        return _extract_pdf_text(data)
+
+    if (content_type or "").startswith("text/"):
         return _decode_text(data)
 
     # Fall back to treating it as plain text -- most "unknown" uploads in a
@@ -45,6 +51,8 @@ def _decode_text(data: bytes) -> str:
 
 
 def _extract_pdf_text(data: bytes) -> str:
+    from pypdf import PdfReader
+
     reader = PdfReader(io.BytesIO(data))
     pages_text = []
     for page in reader.pages:
