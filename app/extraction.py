@@ -47,7 +47,7 @@ def extract_text(filename: str, content_type: str | None, data: bytes) -> str:
 
 
 def _decode_text(data: bytes) -> str:
-    return data.decode("utf-8")
+    return data.decode("utf-8-sig")
 
 
 def _extract_pdf_text(data: bytes) -> str:
