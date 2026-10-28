@@ -21,6 +21,7 @@ def extract_text(filename: str, content_type: str | None, data: bytes) -> str:
     Content-Type header, which browsers/tools often get wrong or omit).
     """
     lower_name = (filename or "").lower()
+    content_type = (content_type or "").split(";", 1)[0].strip().lower()
 
     if lower_name.endswith(".pdf"):
         return _extract_pdf_text(data)
