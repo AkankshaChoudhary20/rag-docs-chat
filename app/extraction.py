@@ -48,8 +48,10 @@ def extract_text(filename: str, content_type: str | None, data: bytes) -> str:
 
 
 def _decode_text(data: bytes) -> str:
-    # A BOM explicitly identifies Windows UTF-16 text; avoid guessing an
-    # encoding for arbitrary binary data or changing strict UTF-8 handling.
+    # UTF-32 LE shares the UTF-16 LE prefix, so inspect longer BOMs first.
+    # Only explicit BOMs select a non-UTF-8 encoding.
+    if data.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+        return data.decode("utf-32")
     if data.startswith((b"\xff\xfe", b"\xfe\xff")):
         return data.decode("utf-16")
     return data.decode("utf-8-sig")
