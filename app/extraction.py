@@ -51,10 +51,16 @@ def _decode_text(data: bytes) -> str:
     # UTF-32 LE shares the UTF-16 LE prefix, so inspect longer BOMs first.
     # Only explicit BOMs select a non-UTF-8 encoding.
     if data.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
-        return data.decode("utf-32")
-    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
-        return data.decode("utf-16")
-    return data.decode("utf-8-sig")
+        text = data.decode("utf-32")
+    elif data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = data.decode("utf-16")
+    else:
+        text = data.decode("utf-8-sig")
+    # NUL bytes can decode as UTF-8 but cannot be stored in PostgreSQL text.
+    # Check after BOM decoding so valid UTF-16/32 documents remain supported.
+    if "\x00" in text:
+        raise UnsupportedFileTypeError("Document contains NUL characters; upload a text document.")
+    return text
 
 
 def _extract_pdf_text(data: bytes) -> str:
