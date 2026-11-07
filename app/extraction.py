@@ -70,4 +70,7 @@ def _extract_pdf_text(data: bytes) -> str:
     pages_text = []
     for page in reader.pages:
         pages_text.append(page.extract_text() or "")
-    return "\n\n".join(pages_text)
+    text = "\n\n".join(pages_text)
+    if "\x00" in text:
+        raise UnsupportedFileTypeError("Document contains NUL characters; upload a text document.")
+    return text
